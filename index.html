@@ -8,12 +8,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" xintegrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoVBL5gI9kLmbG4dGtoxp3AFUEeUDw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" xintegrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5T5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <!-- 
     Chosen Palette: Warm Neutrals (Slate & Teal)
-    Application Structure Plan: A single-page application with a fixed sidebar for navigation and a main content area. This structure is ideal for documentation, allowing users to quickly jump between sections without losing context. Key interactive elements are a visual process flow diagram and a code explorer with contextual explanations to make a dense technical document more digestible for developers and maintainers.
+    Application Structure Plan: A single-page application with a fixed sidebar for desktop and a collapsible top-bar menu for mobile. This responsive structure ensures optimal usability on all devices. Key interactive elements are a visual process flow diagram and a code explorer. A new "Download PDF" feature was added for offline use, now with headers, footers, and expanded content.
     Visualization & Content Choices: 
-     - Report Info: Process Flow -> Goal: Organize/Inform -> Viz: HTML/CSS Diagram -> Interaction: Hover to highlight stages. Justification: Visual flows are easier to understand than text descriptions. Library: Tailwind CSS.
-     - Report Info: PHP Code -> Goal: Explain -> Viz: Code block with annotations -> Interaction: Click on markers to show contextual help. Justification: Breaks down complex code into understandable parts. Library: Custom JS.
+     - Report Info: Process Flow -> Goal: Organize/Inform -> Viz: HTML/CSS Diagram -> Interaction: Hover to highlight. Justification: Visual flows are easier to understand. Library: Tailwind CSS.
+     - Report Info: PHP Code -> Goal: Explain -> Viz: Code block with annotations -> Interaction: Click to show contextual help. Justification: Breaks down complex code. Library: Custom JS.
      - Report Info: Maintenance steps -> Goal: Inform -> Viz: Accordion -> Interaction: Click to expand/collapse. Justification: Prevents information overload. Library: Custom JS.
     CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
     -->
@@ -60,466 +62,391 @@
         .flow-arrow {
             color: #94A3B8; /* slate-400 */
         }
-        .flow-step:hover .flow-arrow {
-            color: #0D9488; /* teal-600 */
+        /* Mobile menu transition */
+        #mobile-menu {
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        /* --- Styles for PDF generation --- */
+        .pdf-prepare .content-section {
+            display: block !important;
+            margin-bottom: 20px; /* Add space between sections in the PDF */
+        }
+        .pdf-prepare .accordion-content {
+            display: block !important;
+        }
+        .pdf-prepare .accordion-header svg {
+            transform: rotate(180deg);
+        }
+        .pdf-prepare .code-marker {
+            background-color: transparent;
+            border: 1px solid #99F6E4;
+            color: white;
+        }
+        .pdf-prepare #code-explanation,
+        .pdf-prepare .copy-button-container {
+            display: none; /* Hide interactive-only elements from PDF */
+        }
+        /* Force simpler layout for problematic flex components */
+        .pdf-prepare .credentials-container > div {
+             display: block;
+        }
+         .pdf-prepare .credentials-container .flex {
+            display: block;
         }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
 
     <div class="flex min-h-screen">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-white border-r border-slate-200 flex-shrink-0">
+        <!-- Sidebar for Desktop -->
+        <aside class="w-64 bg-white border-r border-slate-200 flex-shrink-0 hidden md:block">
             <div class="p-6">
                 <h1 class="text-xl font-bold text-slate-900">Frizon & RD</h1>
                 <p class="text-sm text-slate-500">Documentação Interativa</p>
             </div>
-            <nav id="main-nav" class="px-4">
-                <a href="#overview" class="nav-link flex items-center px-4 py-2 text-slate-700 rounded-md hover:bg-slate-100 transition-colors">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Visão Geral
-                </a>
-                <a href="#architecture" class="nav-link flex items-center px-4 py-2 mt-2 text-slate-700 rounded-md hover:bg-slate-100 transition-colors">
-                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                    Arquitetura
-                </a>
-                <a href="#mapping" class="nav-link flex items-center px-4 py-2 mt-2 text-slate-700 rounded-md hover:bg-slate-100 transition-colors">
-                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002-2h2a2 2 0 002 2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                    Mapeamento
-                </a>
-                <a href="#code" class="nav-link flex items-center px-4 py-2 mt-2 text-slate-700 rounded-md hover:bg-slate-100 transition-colors">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                    Explorador de Código
-                </a>
-                <a href="#maintenance" class="nav-link flex items-center px-4 py-2 mt-2 text-slate-700 rounded-md hover:bg-slate-100 transition-colors">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    Manutenção
-                </a>
+            <nav id="desktop-nav" class="px-4">
+                <!-- Nav links will be injected here by JS -->
             </nav>
         </aside>
 
+        <!-- Mobile Header -->
+        <header class="md:hidden bg-white/80 backdrop-blur-sm border-b border-slate-200 fixed top-0 left-0 right-0 z-20">
+            <div class="flex justify-between items-center p-4">
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900">Frizon & RD</h1>
+                    <p class="text-xs text-slate-500">Documentação</p>
+                </div>
+                <button id="menu-toggle" class="p-2 rounded-md hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Mobile Menu (overlay) -->
+        <div id="mobile-menu-overlay" class="md:hidden fixed inset-0 bg-black/50 z-30 hidden"></div>
+        <div id="mobile-menu" class="md:hidden fixed top-0 right-0 h-full w-64 bg-white z-40 transform translate-x-full">
+            <div class="p-6 flex justify-between items-center border-b">
+                 <h2 class="font-bold">Navegação</h2>
+                 <button id="menu-close" class="p-2 rounded-md hover:bg-slate-100">&times;</button>
+            </div>
+            <nav id="mobile-nav" class="p-4">
+                 <!-- Nav links will be injected here by JS -->
+            </nav>
+        </div>
+
+
         <!-- Main Content -->
-        <main class="flex-1 p-6 md:p-10">
-            
-            <!-- Section: Visão Geral -->
-            <section id="overview" class="content-section">
-                <h2 class="text-3xl font-bold text-slate-900 mb-2">Visão Geral do Projeto</h2>
-                <p class="text-lg text-slate-600 mb-8">Automatizar a captura e distribuição de leads, otimizando o processo comercial desde o primeiro contato.</p>
-                
-                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-                    <h3 class="text-xl font-semibold text-slate-800 mb-4">Fluxo da Automação</h3>
-                    <p class="text-slate-600 mb-6">Esta automação cria um pipeline de dados robusto que conecta o formulário do site diretamente ao corretor certo. Cada etapa foi projetada para garantir que nenhum lead seja perdido e a distribuição seja justa e imediata. Explore o diagrama abaixo para entender o percurso do lead.</p>
-                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-center text-center">
-                        <div class="flow-step bg-white p-4 rounded-lg border-2">
-                            <div class="text-3xl mb-2">📬</div>
-                            <h4 class="font-semibold">1. Envio do Formulário</h4>
-                            <p class="text-xs text-slate-500">Usuário preenche e envia dados no site.</p>
-                        </div>
-                        <div class="flow-arrow text-2xl hidden md:block">→</div>
-                        <div class="flow-step bg-white p-4 rounded-lg border-2">
-                            <div class="text-3xl mb-2">⚙️</div>
-                            <h4 class="font-semibold">2. Gatilho WordPress</h4>
-                            <p class="text-xs text-slate-500">O plugin "Code Snippets" intercepta o envio.</p>
-                        </div>
-                        <div class="flow-arrow text-2xl hidden lg:block">→</div>
-                        <div class="flow-step bg-white p-4 rounded-lg border-2">
-                             <div class="text-3xl mb-2">🔄</div>
-                            <h4 class="font-semibold">3. Lógica da Roleta</h4>
-                            <p class="text-xs text-slate-500">Script busca corretores na API (com cache) e escolhe o próximo da fila.</p>
-                        </div>
-                        <div class="flow-arrow text-2xl hidden md:block">→</div>
-                         <div class="flow-step bg-white p-4 rounded-lg border-2">
-                             <div class="text-3xl mb-2">📦</div>
-                            <h4 class="font-semibold">4. Montagem dos Dados</h4>
-                            <p class="text-xs text-slate-500">O script formata os dados para a API do RD.</p>
-                        </div>
-                        <div class="flow-arrow text-2xl hidden lg:block">→</div>
-                        <div class="flow-step bg-white p-4 rounded-lg border-2">
-                            <div class="text-3xl mb-2">🎯</div>
-                            <h4 class="font-semibold">5. Criação no CRM</h4>
-                            <p class="text-xs text-slate-500">Negociação criada e atribuída ao corretor da vez no RD Station.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-8 grid md:grid-cols-2 gap-8">
-                    <div>
-                        <h3 class="text-xl font-semibold text-slate-800 mb-3">Objetivo</h3>
-                        <p class="text-slate-600">Automatizar a entrada de leads no processo comercial, garantindo que cada envio de formulário no site `frizonconstrutora.com.br` gerasse uma nova Negociação (Deal) no RD Station CRM. Adicionalmente, o sistema deveria distribuir os leads de forma sequencial e automática entre os membros de um time de corretores específico, assegurando uma distribuição justa e imediata.</p>
-                    </div>
-                    <div>
-                        <h3 class="text-xl font-semibold text-slate-800 mb-3">Resultado</h3>
-                        <p class="text-slate-600">A integração está concluída e totalmente funcional. O sistema não só captura os leads de diferentes formulários de forma robusta, como também gerencia uma distribuição automatizada e justa entre a equipe comercial, otimizando o processo de vendas desde o primeiro contato.</p>
-                    </div>
-                </div>
-
-            </section>
-
-            <!-- Section: Arquitetura -->
-            <section id="architecture" class="content-section">
-                <h2 class="text-3xl font-bold text-slate-900 mb-2">Arquitetura e Componentes</h2>
-                <p class="text-lg text-slate-600 mb-8">A solução interliga diferentes plataformas e APIs. Abaixo estão os componentes centrais e as credenciais utilizadas.</p>
-                
-                <div class="grid md:grid-cols-2 gap-8">
+        <main class="flex-1 p-6 pt-24 md:p-10 md:pt-6">
+            <div id="printable-content">
+                <!-- Section: Visão Geral -->
+                <section id="overview" class="content-section">
+                    <h2 class="text-3xl font-bold text-slate-900 mb-2">Visão Geral do Projeto</h2>
+                    <p class="text-lg text-slate-600 mb-8">Automatizar a captura e distribuição de leads, otimizando o processo comercial desde o primeiro contato.</p>
+                    
                     <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Plataformas e Ferramentas</h3>
-                        <ul class="space-y-3">
-                            <li class="flex items-start"><span class="bg-teal-100 text-teal-800 text-xs font-semibold mr-3 px-2.5 py-0.5 rounded-full">Plataforma</span> <div><strong>WordPress</strong><p class="text-sm text-slate-500">Sistema de gerenciamento de conteúdo do site.</p></div></li>
-                            <li class="flex items-start"><span class="bg-teal-100 text-teal-800 text-xs font-semibold mr-3 px-2.5 py-0.5 rounded-full">Plugin</span> <div><strong>Contact Form 7</strong><p class="text-sm text-slate-500">Responsável pela criação dos formulários de captura.</p></div></li>
-                            <li class="flex items-start"><span class="bg-teal-100 text-teal-800 text-xs font-semibold mr-3 px-2.5 py-0.5 rounded-full">Plugin</span> <div><strong>Code Snippets</strong><p class="text-sm text-slate-500">Onde o código de integração foi implementado de forma segura.</p></div></li>
-                            <li class="flex items-start"><span class="bg-teal-100 text-teal-800 text-xs font-semibold mr-3 px-2.5 py-0.5 rounded-full">CRM</span> <div><strong>RD Station CRM</strong><p class="text-sm text-slate-500">Destino final dos leads e centro da gestão comercial.</p></div></li>
-                        </ul>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Fluxo da Automação</h3>
+                        <p class="text-slate-600 mb-6">Esta automação cria um pipeline de dados robusto que conecta o formulário do site diretamente ao corretor certo. Cada etapa foi projetada para garantir que nenhum lead seja perdido e a distribuição seja justa e imediata.</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 items-stretch text-center">
+                            <div class="flow-step bg-white p-4 rounded-lg border-2 flex flex-col justify-center">
+                                <div class="text-3xl mb-2">📬</div>
+                                <h4 class="font-semibold text-sm">1. Envio do Formulário</h4>
+                            </div>
+                            <div class="flow-arrow text-2xl hidden sm:flex items-center justify-center">→</div>
+                            <div class="flow-step bg-white p-4 rounded-lg border-2 flex flex-col justify-center">
+                                <div class="text-3xl mb-2">⚙️</div>
+                                <h4 class="font-semibold text-sm">2. Gatilho WordPress</h4>
+                            </div>
+                             <div class="flow-arrow text-2xl hidden md:flex items-center justify-center">→</div>
+                            <div class="flow-step bg-white p-4 rounded-lg border-2 flex flex-col justify-center mt-4 sm:mt-0">
+                                 <div class="text-3xl mb-2">🔄</div>
+                                <h4 class="font-semibold text-sm">3. Lógica da Roleta</h4>
+                            </div>
+                            <div class="flow-arrow text-2xl hidden sm:flex items-center justify-center lg:hidden">→</div>
+                            <div class="flow-arrow text-2xl hidden lg:flex items-center justify-center">→</div>
+                             <div class="flow-step bg-white p-4 rounded-lg border-2 flex flex-col justify-center mt-4 md:mt-0">
+                                 <div class="text-3xl mb-2">📦</div>
+                                <h4 class="font-semibold text-sm">4. Montagem dos Dados</h4>
+                            </div>
+                             <div class="flow-arrow text-2xl hidden md:flex items-center justify-center">→</div>
+                            <div class="flow-step bg-white p-4 rounded-lg border-2 flex flex-col justify-center mt-4 lg:mt-0">
+                                <div class="text-3xl mb-2">🎯</div>
+                                <h4 class="font-semibold text-sm">5. Criação no CRM</h4>
+                            </div>
+                        </div>
                     </div>
-                    <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-                        <h3 class="text-xl font-semibold text-slate-800 mb-4">Credenciais e Endpoints</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="text-sm font-medium text-slate-600">Token da API do RD Station</label>
-                                <div class="flex items-center mt-1">
-                                    <input type="text" id="api-token" value="00000000000000000" readonly class="w-full bg-slate-100 border-slate-300 rounded-l-md text-sm p-2 font-mono">
-                                    <button onclick="copyToClipboard('api-token')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-r-md transition-colors">Copiar</button>
+
+                    <div class="mt-8 grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-semibold text-slate-800 mb-3">Objetivo</h3>
+                            <p class="text-slate-600">Automatizar a entrada de leads no processo comercial, garantindo que cada envio de formulário gerasse uma nova Negociação (Deal) no RD Station CRM, e distribuir os leads de forma sequencial e automática entre os corretores.</p>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-slate-800 mb-3">Resultado</h3>
+                            <p class="text-slate-600">A integração está 100% funcional. O sistema captura os leads de diferentes formulários e gerencia uma distribuição automatizada e justa entre a equipe comercial, otimizando o processo de vendas.</p>
+                        </div>
+                    </div>
+
+                </section>
+
+                <!-- Section: Arquitetura -->
+                <section id="architecture" class="content-section">
+                    <h2 class="text-3xl font-bold text-slate-900 mb-2">Arquitetura e Componentes</h2>
+                    <p class="text-lg text-slate-600 mb-8">A solução interliga diferentes plataformas e APIs. Abaixo estão os componentes centrais e as credenciais utilizadas.</p>
+                    
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                            <h3 class="text-xl font-semibold text-slate-800 mb-4">Plataformas e Ferramentas</h3>
+                            <ul class="space-y-3">
+                                <li class="flex items-start"><span class="bg-teal-100 text-teal-800 text-xs font-semibold mr-3 px-2.5 py-0.5 rounded-full">Plataforma</span> <div><strong>WordPress</strong><p class="text-sm text-slate-500">Sistema de gerenciamento de conteúdo do site.</p></div></li>
+                                <li class="flex items-start"><span class="bg-teal-100 text-teal-800 text-xs font-semibold mr-3 px-2.5 py-0.5 rounded-full">Plugin</span> <div><strong>Contact Form 7</strong><p class="text-sm text-slate-500">Responsável pela criação dos formulários de captura.</p></div></li>
+                                <li class="flex items-start"><span class="bg-teal-100 text-teal-800 text-xs font-semibold mr-3 px-2.5 py-0.5 rounded-full">Plugin</span> <div><strong>Code Snippets</strong><p class="text-sm text-slate-500">Onde o código de integração foi implementado de forma segura.</p></div></li>
+                                <li class="flex items-start"><span class="bg-teal-100 text-teal-800 text-xs font-semibold mr-3 px-2.5 py-0.5 rounded-full">CRM</span> <div><strong>RD Station CRM</strong><p class="text-sm text-slate-500">Destino final dos leads e centro da gestão comercial.</p></div></li>
+                            </ul>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                            <h3 class="text-xl font-semibold text-slate-800 mb-4">Credenciais e Endpoints</h3>
+                            <div class="space-y-4 credentials-container">
+                                <div>
+                                    <label class="text-sm font-medium text-slate-600">Token da API do RD Station</label>
+                                    <div class="flex items-center mt-1">
+                                        <input type="text" id="api-token" value="0000000000000000000000" readonly class="w-full bg-slate-100 border-slate-300 rounded-l-md text-sm p-2 font-mono">
+                                        <div class="copy-button-container"><button onclick="copyToClipboard('api-token')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-r-md transition-colors">Copiar</button></div>
+                                    </div>
+                                </div>
+                                 <div>
+                                    <label class="text-sm font-medium text-slate-600">ID do Time de Corretores</label>
+                                    <div class="flex items-center mt-1">
+                                        <input type="text" id="team-id" value="6855******f822e2" readonly class="w-full bg-slate-100 border-slate-300 rounded-l-md text-sm p-2 font-mono">
+                                        <div class="copy-button-container"><button onclick="copyToClipboard('team-id')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-r-md transition-colors">Copiar</button></div>
+                                    </div>
                                 </div>
                             </div>
-                             <div>
-                                <label class="text-sm font-medium text-slate-600">ID do Time de Corretores</label>
-                                <div class="flex items-center mt-1">
-                                    <input type="text" id="team-id" value="6855f3e38094780018f822e2" readonly class="w-full bg-slate-100 border-slate-300 rounded-l-md text-sm p-2 font-mono">
-                                    <button onclick="copyToClipboard('team-id')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-r-md transition-colors">Copiar</button>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-slate-600">Endpoints da API v1</label>
-                                <ul class="text-sm mt-1 space-y-1 font-mono text-slate-700">
-                                    <li><code class="bg-slate-100 p-1 rounded">/api/v1/deals</code></li>
-                                    <li><code class="bg-slate-100 p-1 rounded">/api/v1/teams/{id}</code></li>
-                                </ul>
-                            </div>
+                             <p id="copy-feedback" class="text-sm text-teal-600 mt-3 h-5"></p>
                         </div>
-                         <p id="copy-feedback" class="text-sm text-teal-600 mt-3 h-5"></p>
                     </div>
-                </div>
+                </section>
 
-                <div class="mt-8 bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-                    <h3 class="text-xl font-semibold text-slate-800 mb-4">Campos Personalizados no RD Station</h3>
-                    <p class="text-slate-600 mb-4">Para armazenar informações específicas vindas dos formulários, os seguintes campos foram criados na entidade "Negociações" dentro do CRM.</p>
-                    <div class="overflow-x-auto">
+                <!-- Section: Mapeamento de Formulários -->
+                <section id="mapping" class="content-section">
+                    <h2 class="text-3xl font-bold text-slate-900 mb-2">Mapeamento de Formulários</h2>
+                    <p class="text-lg text-slate-600 mb-8">O script lida com as variações de campos entre os formulários. Esta tabela detalha os IDs e os campos relevantes.</p>
+                    <div class="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-slate-200 overflow-x-auto">
                         <table class="w-full text-sm text-left">
                             <thead class="bg-slate-100 text-slate-600">
                                 <tr>
-                                    <th class="p-3">ID do Campo</th>
-                                    <th class="p-3">Nome do Campo</th>
-                                    <th class="p-3">Finalidade</th>
+                                    <th class="p-3">ID</th>
+                                    <th class="p-3 hidden sm:table-cell">Título</th>
+                                    <th class="p-3">Tipo</th>
+                                    <th class="p-3">Tags</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr class="border-b border-slate-200">
-                                    <td class="p-3 font-mono">68540a13b68281001d969881</td>
-                                    <td class="p-3 font-medium">Mensagem Inicial</td>
-                                    <td class="p-3">Armazena a mensagem enviada pelo cliente.</td>
+                                <tr class="border-b border-slate-200 hover:bg-slate-50">
+                                    <td class="p-3 font-semibold">15482</td>
+                                    <td class="p-3 hidden sm:table-cell">Contact form 1</td>
+                                    <td class="p-3"><span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded">Principal</span></td>
+                                    <td class="p-3 font-mono text-xs">`first-name`, `tel`, `your-email`</td>
                                 </tr>
-                                <tr class="border-b border-slate-200">
-                                    <td class="p-3 font-mono">68540a7b4ae32c001e0e475c</td>
-                                    <td class="p-3 font-medium">WhatsApp</td>
-                                    <td class="p-3">Armazena o telefone do cliente.</td>
+                                <tr class="border-b border-slate-200 hover:bg-slate-50">
+                                    <td class="p-3 font-semibold">16146</td>
+                                    <td class="p-3 hidden sm:table-cell">Simulação Bella Frizon</td>
+                                    <td class="p-3"><span class="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-0.5 rounded">Simulação</span></td>
+                                    <td class="p-3 font-mono text-xs">`nome`, `fone`, `email`</td>
                                 </tr>
-                                <tr>
-                                    <td class="p-3 font-mono">68540a95e244870014797800</td>
-                                    <td class="p-3 font-medium">Origem</td>
-                                    <td class="p-3">Armazena o nome do formulário de origem do lead.</td>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="p-3 font-semibold">16144</td>
+                                    <td class="p-3 hidden sm:table-cell">Simulação Portal</td>
+                                    <td class="p-3"><span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded">Simulação</span></td>
+                                    <td class="p-3 font-mono text-xs">`cliente`, `telefone`, `email`</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                </div>
-            </section>
+                </section>
+                
+                <!-- Section: Code Explorer -->
+                <section id="code" class="content-section">
+                     <h2 class="text-3xl font-bold text-slate-900 mb-2">Explorador de Código</h2>
+                    <p class="text-lg text-slate-600 mb-8">Navegue pelo código-fonte. Clique nos marcadores <span class="code-marker">destacados</span> para ver uma explicação.</p>
 
-            <!-- Section: Mapeamento de Formulários -->
-            <section id="mapping" class="content-section">
-                <h2 class="text-3xl font-bold text-slate-900 mb-2">Mapeamento de Formulários</h2>
-                <p class="text-lg text-slate-600 mb-8">O script foi programado para lidar com as variações de campos entre os diferentes formulários do site. Esta tabela detalha os IDs e os campos relevantes para cada um.</p>
-                <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 overflow-x-auto">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-slate-100 text-slate-600">
-                            <tr>
-                                <th class="p-3">ID</th>
-                                <th class="p-3">Título do Formulário</th>
-                                <th class="p-3">Tipo</th>
-                                <th class="p-3">Tags de Campos Relevantes</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="border-b border-slate-200 hover:bg-slate-50">
-                                <td class="p-3 font-semibold">15482</td>
-                                <td class="p-3">Contact form 1</td>
-                                <td class="p-3"><span class="bg-blue-100 text-blue-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded">Principal</span></td>
-                                <td class="p-3 font-mono">`first-name`, `tel`, `your-email`, `your-message`</td>
-                            </tr>
-                            <tr class="border-b border-slate-200 hover:bg-slate-50">
-                                <td class="p-3 font-semibold">5</td>
-                                <td class="p-3">Formulário de contato 1</td>
-                                <td class="p-3"><span class="bg-blue-100 text-blue-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded">Principal</span></td>
-                                <td class="p-3 font-mono">`your-name`, `your-email`, `your-message`</td>
-                            </tr>
-                            <tr class="border-b border-slate-200 hover:bg-slate-50">
-                                <td class="p-3 font-semibold">16146</td>
-                                <td class="p-3">Simulação Bella Frizon</td>
-                                <td class="p-3"><span class="bg-purple-100 text-purple-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded">Simulação (Exceção)</span></td>
-                                <td class="p-3 font-mono">`nome`, `fone`, `email`</td>
-                            </tr>
-                            <tr class="border-b border-slate-200 hover:bg-slate-50">
-                                <td class="p-3 font-semibold">16145</td>
-                                <td class="p-3">Simulação Dante</td>
-                                <td class="p-3"><span class="bg-green-100 text-green-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded">Simulação (Padrão)</span></td>
-                                <td class="p-3 font-mono">`cliente`, `telefone`, `email`</td>
-                            </tr>
-                            <tr class="border-b border-slate-200 hover:bg-slate-50">
-                                <td class="p-3 font-semibold">16147</td>
-                                <td class="p-3">Simulação Malibu</td>
-                                <td class="p-3"><span class="bg-green-100 text-green-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded">Simulação (Padrão)</span></td>
-                                <td class="p-3 font-mono">`cliente`, `telefone`, `email`</td>
-                            </tr>
-                            <tr class="hover:bg-slate-50">
-                                <td class="p-3 font-semibold">16144</td>
-                                <td class="p-3">Simulação Portal</td>
-                                <td class="p-3"><span class="bg-green-100 text-green-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded">Simulação (Padrão)</span></td>
-                                <td class="p-3 font-mono">`cliente`, `telefone`, `email`</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-            
-            <!-- Section: Code Explorer -->
-            <section id="code" class="content-section">
-                 <h2 class="text-3xl font-bold text-slate-900 mb-2">Explorador de Código</h2>
-                <p class="text-lg text-slate-600 mb-8">Navegue pelo código-fonte da integração. Clique nos marcadores <span class="code-marker">destacados</span> para ver uma explicação detalhada de cada bloco lógico.</p>
+                    <div class="flex flex-col lg:flex-row gap-6">
+                        <div class="w-full lg:w-2/3 bg-slate-800 text-white p-4 rounded-lg shadow-lg overflow-x-auto">
+                            <pre><code class="language-php text-sm whitespace-pre-wrap">/* ... (código completo no anexo) ... */
 
-                <div class="flex flex-col md:flex-row gap-6">
-                    <!-- Code Block -->
-                    <div class="w-full md:w-2/3 bg-slate-800 text-white p-4 rounded-lg shadow-lg overflow-x-auto">
-                        <pre><code class="language-php text-sm">
-&lt;?php
-
-// Função Auxiliar
-function get_frizon_corretores_ids() {
-    <span class="code-marker" data-target="code-1">/* Tenta buscar dados do cache */</span>
-    $transient_name = 'frizon_corretores_cache';
-    $cached_user_ids = get_transient($transient_name);
-    if (false !== $cached_user_ids) {
-        return $cached_user_ids;
-    }
-
-    <span class="code-marker" data-target="code-2">/* Se não houver cache, busca na API */</span>
-    $team_id = '6855f3e38094780018f822e2';
-    $token = '00000000000000000000000000000';
-    $api_url = ".../teams/{$team_id}?token={$token}";
-
-    $response = wp_remote_get($api_url, ...);
-    if (is_wp_error($response) || ...) {
-        return [];
-    }
-
-    $body = wp_remote_retrieve_body($response);
-    $data = json_decode($body);
-    $user_ids = !empty($data->user_ids) ? $data->user_ids : [];
-
-    <span class="code-marker" data-target="code-3">/* Salva a nova lista no cache por 12h */</span>
-    set_transient($transient_name, $user_ids, 12 * HOUR_IN_SECONDS);
-    return $user_ids;
+<span class="code-marker" data-target="code-1">/* Otimização com Cache */</span>
+$cached_user_ids = get_transient(...);
+if (false !== $cached_user_ids) {
+    return $cached_user_ids;
 }
 
-// Função Principal
-function enviar_negociacao_definitiva_frizon(...) {
-    
-    <span class="code-marker" data-target="code-4">/* Lógica de Distribuição (Roleta) */</span>
-    $corretores_ids = get_frizon_corretores_ids();
-    if (!empty($corretores_ids)) {
-        $ultimo_indice = get_option('indice_ultimo_corretor_frizon', -1);
-        $proximo_indice = ($ultimo_indice + 1) % count($corretores_ids);
-        $id_do_corretor_da_vez = $corretores_ids[$proximo_indice];
-        update_option('indice_ultimo_corretor_frizon', $proximo_indice);
-    }
-    
-    <span class="code-marker" data-target="code-5">/* Captura e Mapeamento de Campos */</span>
-    $submission = WPCF7_Submission::get_instance();
-    $posted_data = $submission->get_posted_data();
-    // ... Lógica condicional para mapear os campos ...
-    if ($id_atual == $id_simulacao_bella_frizon) {
-        // ...
-    } elseif (in_array($id_atual, $ids_simulacao_padrao)) {
-        // ...
-    } else {
-        // ...
-    }
-    
-    <span class="code-marker" data-target="code-6">/* Montagem do Payload para a API */</span>
-    $deal_payload = [ 'deal' => [ ... ], 'contacts' => [ ... ] ];
-    if (!empty($id_do_corretor_da_vez)) {
-        $deal_payload['deal']['user_id'] = $id_do_corretor_da_vez;
-    }
+<span class="code-marker" data-target="code-2">/* Busca Dinâmica na API */</span>
+$response = wp_remote_get(...);
 
-    <span class="code-marker" data-target="code-7">/* Envio para o RD Station */</span>
-    $api_url = '.../deals?token=...';
-    $args = [ 'method' => 'POST', ... ];
-    wp_remote_post($api_url, $args);
+<span class="code-marker" data-target="code-4">/* Lógica de Distribuição (Roleta) */</span>
+$ultimo_indice = get_option(...);
+$proximo_indice = ($ultimo_indice + 1) % ...;
+$id_do_corretor_da_vez = ...;
+update_option(...);
+
+<span class="code-marker" data-target="code-6">/* Montagem do Payload */</span>
+$deal_payload = [ ... ];
+if (!empty($id_do_corretor_da_vez)) {
+    $deal_payload['deal']['user_id'] = ...;
 }
 
 <span class="code-marker" data-target="code-8">/* Gatilho de Execução */</span>
-add_action('wpcf7_mail_sent', 'enviar_negociacao_definitiva_frizon');
-                        </code></pre>
-                    </div>
+add_action('wpcf7_mail_sent', ...);</code></pre>
+                        </div>
 
-                    <!-- Explanation Panel -->
-                    <div class="w-full md:w-1/3">
-                        <div id="code-explanation" class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 sticky top-6">
-                            <h3 id="explanation-title" class="text-lg font-semibold text-teal-800">Clique em um marcador</h3>
-                            <p id="explanation-text" class="text-slate-600 mt-2">Passe o mouse e clique em uma das seções destacadas no código para entender o que ela faz.</p>
+                        <div class="w-full lg:w-1/3">
+                            <div id="code-explanation" class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 lg:sticky top-6">
+                                <h3 id="explanation-title" class="text-lg font-semibold text-teal-800">Clique em um marcador</h3>
+                                <p id="explanation-text" class="text-slate-600 mt-2">Passe o mouse e clique em uma das seções destacadas no código para entender o que ela faz.</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
 
-            <!-- Section: Manutenção -->
-            <section id="maintenance" class="content-section">
-                <h2 class="text-3xl font-bold text-slate-900 mb-2">Manutenção e Diagnóstico</h2>
-                <p class="text-lg text-slate-600 mb-8">Instruções para futuras atualizações e para solucionar problemas comuns que possam surgir.</p>
-                
-                <div class="space-y-4">
-                    <div class="accordion-item bg-white rounded-lg border border-slate-200 shadow-sm">
-                        <h3 class="accordion-header cursor-pointer flex justify-between items-center p-4">
-                            <span class="font-semibold text-slate-800">Como alterar o time de corretores?</span>
-                            <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </h3>
-                        <div class="accordion-content hidden p-4 border-t border-slate-200">
-                            <p class="text-slate-600">Nenhuma ação é necessária no código. A solução é dinâmica. Basta **adicionar ou remover usuários do time "Corretores" diretamente no painel do RD Station CRM**. O sistema irá buscar a lista atualizada automaticamente a cada 12 horas.</p>
-                        </div>
-                    </div>
-                    <div class="accordion-item bg-white rounded-lg border border-slate-200 shadow-sm">
-                        <h3 class="accordion-header cursor-pointer flex justify-between items-center p-4">
-                            <span class="font-semibold text-slate-800">Como adicionar um novo formulário?</span>
-                            <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </h3>
-                        <div class="accordion-content hidden p-4 border-t border-slate-200">
-                           <ol class="list-decimal list-inside text-slate-600 space-y-2">
-                                <li>Crie o formulário no Contact Form 7.</li>
-                                <li>Encontre seu ID numérico (visível no shortcode, por exemplo).</li>
-                                <li>Adicione o ID à lista `$ids_dos_formularios_alvo` no script.</li>
-                                <li>Verifique os nomes das tags de campo do novo formulário (ex: `[text* your-name]`) e garanta que eles sejam contemplados pela lógica condicional. Se forem diferentes dos padrões existentes, um novo bloco `else if` pode ser necessário.</li>
-                           </ol>
-                        </div>
-                    </div>
-                    <div class="accordion-item bg-white rounded-lg border border-slate-200 shadow-sm">
-                        <h3 class="accordion-header cursor-pointer flex justify-between items-center p-4">
-                            <span class="font-semibold text-slate-800">O que fazer se a integração parar de funcionar?</span>
-                            <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </h3>
-                        <div class="accordion-content hidden p-4 border-t border-slate-200">
-                           <ol class="list-decimal list-inside text-slate-600 space-y-2">
-                                <li>**Verifique as Credenciais:** Confirme se o Token da API ou o ID do Time não foram alterados ou revogados no RD Station CRM.</li>
-                                <li>**Verifique o Time:** Assegure-se de que o time de "Corretores" no RD Station não está vazio.</li>
-                                <li>**Verifique os Formulários:** Confirme se os IDs dos formulários ou os nomes (tags) dos campos não foram alterados no Contact Form 7.</li>
-                                <li>**Force a Limpeza do Cache:** Para forçar uma nova busca da lista de corretores, o cache (transient) pode ser limpo. Isso pode ser feito com plugins como "Transients Manager" ou alterando temporariamente o nome do transient no código (de `'frizon_corretores_cache'` para `'frizon_corretores_cache_v2'`).</li>
-                           </ol>
-                        </div>
-                    </div>
-                </div>
-
-            </section>
+                <!-- Section: Manutenção -->
+                <section id="maintenance" class="content-section">
+                    <h2 class="text-3xl font-bold text-slate-900 mb-2">Manutenção e Diagnóstico</h2>
+                    <p class="text-lg text-slate-600 mb-8">Instruções para futuras atualizações e para solucionar problemas comuns que possam surgir.</p>
+                    <div class="space-y-4" id="accordion-container"></div>
+                </section>
+            </div>
         </main>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const navLinks = document.querySelectorAll('.nav-link');
+            const { jsPDF } = window.jspdf;
+            
+            const navContainerDesktop = document.getElementById('desktop-nav');
+            const navContainerMobile = document.getElementById('mobile-nav');
             const sections = document.querySelectorAll('.content-section');
+            const menuToggle = document.getElementById('menu-toggle');
+            const menuClose = document.getElementById('menu-close');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
             const codeMarkers = document.querySelectorAll('.code-marker');
             const explanationTitle = document.getElementById('explanation-title');
             const explanationText = document.getElementById('explanation-text');
-            const accordionHeaders = document.querySelectorAll('.accordion-header');
+            const accordionContainer = document.getElementById('accordion-container');
+
+            const navItems = [
+                { hash: '#overview', label: 'Visão Geral', icon: '<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' },
+                { hash: '#architecture', label: 'Arquitetura', icon: '<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>' },
+                { hash: '#mapping', label: 'Mapeamento', icon: '<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002-2h2a2 2 0 002 2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>' },
+                { hash: '#code', label: 'Explorador de Código', icon: '<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>' },
+                { hash: '#maintenance', label: 'Manutenção', icon: '<svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>' }
+            ];
+            
+            const pdfButtonHTML = `<button id="download-pdf" class="flex items-center w-full px-4 py-2 mt-4 text-slate-700 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Baixar PDF
+            </button>`;
+
+            let navHTML = '';
+            navItems.forEach(item => {
+                navHTML += `<a href="${item.hash}" class="nav-link flex items-center px-4 py-2 mt-2 text-slate-700 rounded-md hover:bg-slate-100 transition-colors">${item.icon} ${item.label}</a>`;
+            });
+
+            navContainerDesktop.innerHTML = navHTML + pdfButtonHTML;
+            navContainerMobile.innerHTML = navHTML + pdfButtonHTML;
 
             const explanations = {
-                'code-1': {
-                    title: '1. Otimização com Cache',
-                    text: 'O script primeiro verifica se uma lista de corretores já existe no cache do WordPress (transient). Se existir e não tiver expirado (12 horas), ele a utiliza imediatamente, evitando uma chamada desnecessária à API e tornando o processo muito mais rápido.'
-                },
-                'code-2': {
-                    title: '2. Busca Dinâmica na API',
-                    text: 'Se o cache estiver vazio ou expirado, o script faz uma chamada GET para a API do RD Station, usando o ID do time, para obter a lista mais atualizada de IDs de usuários (corretores).'
-                },
-                'code-3': {
-                    title: '3. Armazenamento em Cache',
-                    text: 'Após obter a lista fresca da API, o script a salva no cache (transient) do WordPress com uma validade de 12 horas. Isso garante que a próxima execução seja rápida.'
-                },
-                'code-4': {
-                    title: '4. Lógica de Distribuição (Roleta)',
-                    text: 'Este é o coração da distribuição. Ele pega o índice do último corretor que recebeu um lead (armazenado no banco de dados), soma 1, e usa o operador de módulo (%) para garantir que a contagem "zere" ao chegar no fim da lista. Depois, atualiza o índice no banco para a próxima vez.'
-                },
-                'code-5': {
-                    title: '5. Mapeamento de Campos',
-                    text: 'O script obtém os dados enviados pelo formulário. Ele usa o ID do formulário para entrar em uma estrutura condicional (if/else if/else) que mapeia corretamente os nomes dos campos (ex: "fone" vs "telefone") para variáveis padronizadas.'
-                },
-                'code-6': {
-                    title: '6. Montagem do Payload',
-                    text: 'Com todos os dados prontos, o script monta um array PHP (payload) na estrutura exata que a API do RD Station espera. É aqui que o "user_id" do corretor da vez é adicionado à negociação.'
-                },
-                'code-7': {
-                    title: '7. Envio para o RD Station',
-                    text: 'O array PHP é convertido para o formato JSON. Em seguida, a função `wp_remote_post` do WordPress envia esses dados via POST para o endpoint de criação de negociações da API, efetivamente criando o lead no CRM.'
-                },
-                'code-8': {
-                    title: '8. Gatilho de Execução',
-                    text: 'Esta linha é o que conecta tudo. Ela diz ao WordPress: "Quando o evento `wpcf7_mail_sent` (um formulário do Contact Form 7 foi enviado com sucesso) acontecer, execute a nossa função `enviar_negociacao_definitiva_frizon`."'
-                }
+                'code-1': { title: '1. Otimização com Cache', text: 'O script primeiro verifica se uma lista de corretores já existe no cache do WordPress (transient). Se existir, ele a utiliza imediatamente, evitando uma chamada desnecessária à API.'},
+                'code-2': { title: '2. Busca Dinâmica na API', text: 'Se não houver cache, o script faz uma chamada GET para a API do RD Station para obter a lista mais atualizada de IDs de corretores.'},
+                'code-4': { title: '4. Lógica de Distribuição (Roleta)', text: 'Este é o coração da distribuição. Ele pega o índice do último corretor (salvo no banco), soma 1, e usa o operador de módulo (%) para garantir que a contagem "zere" ao chegar no fim da lista.' },
+                'code-6': { title: '6. Montagem do Payload', text: 'Com todos os dados prontos, o script monta um array PHP na estrutura exata que a API do RD espera. É aqui que o "user_id" do corretor da vez é adicionado à negociação.'},
+                'code-8': { title: '8. Gatilho de Execução', text: 'Esta linha conecta tudo. Ela diz ao WordPress: "Quando um formulário do Contact Form 7 for enviado com sucesso, execute a nossa função de integração."'}
             };
+            
+            const accordionItems = [
+                { title: 'Como alterar o time de corretores?', content: 'Nenhuma ação é necessária no código. A solução é dinâmica. Basta **adicionar ou remover usuários do time "Corretores" diretamente no painel do RD Station CRM**. O sistema irá buscar a lista atualizada automaticamente a cada 12 horas.' },
+                { title: 'Como adicionar um novo formulário?', content: '<ol class="list-decimal list-inside space-y-2"><li>Crie o formulário no Contact Form 7.</li><li>Encontre seu ID numérico.</li><li>Adicione o ID à lista `$ids_dos_formularios_alvo` no script.</li><li>Verifique os nomes das tags de campo e, se necessário, adicione uma nova lógica condicional.</li></ol>' },
+                { title: 'O que fazer se a integração parar?', content: '<ol class="list-decimal list-inside space-y-2"><li>**Verifique as Credenciais:** Confirme se o Token da API ou o ID do Time não foram alterados.</li><li>**Verifique o Time:** Assegure-se de que o time de "Corretores" no RD Station não está vazio.</li><li>**Verifique os Formulários:** Confirme se os IDs ou nomes dos campos não foram alterados.</li><li>**Force a Limpeza do Cache:** Use plugins como "Transients Manager" para limpar o cache `frizon_corretores_cache`.</li></ol>' }
+            ];
 
-            // Navigation
-            function setActiveSection(hash) {
+            let accordionHTML = '';
+            accordionItems.forEach(item => {
+                accordionHTML += `
+                    <div class="accordion-item bg-white rounded-lg border border-slate-200 shadow-sm">
+                        <h3 class="accordion-header cursor-pointer flex justify-between items-center p-4">
+                            <span class="font-semibold text-slate-800">${item.title}</span>
+                            <svg class="w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </h3>
+                        <div class="accordion-content hidden p-4 border-t border-slate-200 text-slate-600">
+                            ${item.content}
+                        </div>
+                    </div>`;
+            });
+            accordionContainer.innerHTML = accordionHTML;
+
+            function setActiveSection(hash, shouldScroll = false) {
                 hash = hash || '#overview';
 
-                navLinks.forEach(link => {
+                document.querySelectorAll('.nav-link').forEach(link => {
                     link.classList.toggle('active', link.getAttribute('href') === hash);
                 });
 
                 sections.forEach(section => {
                     section.classList.toggle('active', '#' + section.id === hash);
                 });
+                
+                if (shouldScroll) {
+                    const targetElement = document.querySelector(hash);
+                    if(targetElement) targetElement.scrollIntoView({ behavior: 'smooth' });
+                }
             }
 
-            // Initial state from hash or default
-            setActiveSection(window.location.hash);
-
-            // Handle navigation clicks
-            document.getElementById('main-nav').addEventListener('click', function(e) {
-                if (e.target.closest('a')) {
-                    const link = e.target.closest('a');
+            function handleNavClick(e) {
+                const link = e.target.closest('a');
+                if (link && link.id !== 'download-pdf-link') {
+                    e.preventDefault();
                     const hash = link.getAttribute('href');
-                    setActiveSection(hash);
+                    setActiveSection(hash, true);
+                    window.history.pushState(null, null, hash);
+                    closeMobileMenu();
                 }
-            });
+            }
+
+            document.getElementById('desktop-nav').addEventListener('click', handleNavClick);
+            document.getElementById('mobile-nav').addEventListener('click', handleNavClick);
+
+            function openMobileMenu() {
+                mobileMenuOverlay.classList.remove('hidden');
+                mobileMenu.classList.remove('translate-x-full');
+            }
+
+            function closeMobileMenu() {
+                mobileMenuOverlay.classList.add('hidden');
+                mobileMenu.classList.add('translate-x-full');
+            }
             
-            // Handle popstate for back/forward buttons
+            menuToggle.addEventListener('click', openMobileMenu);
+            menuClose.addEventListener('click', closeMobileMenu);
+            mobileMenuOverlay.addEventListener('click', closeMobileMenu);
+
             window.addEventListener('popstate', () => {
-                 setActiveSection(window.location.hash);
+                 setActiveSection(window.location.hash || '#overview');
             });
 
-            // Code Explorer
             codeMarkers.forEach(marker => {
                 marker.addEventListener('click', function() {
                     const targetId = this.dataset.target;
                     const explanation = explanations[targetId];
-
                     codeMarkers.forEach(m => m.classList.remove('active'));
                     this.classList.add('active');
-                    
                     if (explanation) {
                         explanationTitle.textContent = explanation.title;
                         explanationText.textContent = explanation.text;
                     }
                 });
             });
-
-            // Accordion
-            accordionHeaders.forEach(header => {
+            
+            document.querySelectorAll('.accordion-header').forEach(header => {
                 header.addEventListener('click', function() {
                     const content = this.nextElementSibling;
                     const icon = this.querySelector('svg');
@@ -527,28 +454,87 @@ add_action('wpcf7_mail_sent', 'enviar_negociacao_definitiva_frizon');
                     icon.classList.toggle('rotate-180');
                 });
             });
+
+            async function generatePDF(button) {
+                button.disabled = true;
+                const originalText = button.innerHTML;
+                button.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Gerando PDF...`;
+
+                const contentToPrint = document.getElementById('printable-content');
+                document.body.classList.add('pdf-prepare');
+                
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'pt',
+                    format: 'a4'
+                });
+                
+                const pageMargin = 40;
+                const pageHeaderHeight = 30;
+                const pageFooterHeight = 30;
+                const contentWidth = pdf.internal.pageSize.getWidth() - (pageMargin * 2);
+                const contentHeight = pdf.internal.pageSize.getHeight() - (pageMargin * 2) - pageHeaderHeight - pageFooterHeight;
+                let y = 0;
+                
+                const sectionElements = Array.from(contentToPrint.querySelectorAll('.content-section'));
+
+                for (const section of sectionElements) {
+                    const canvas = await html2canvas(section, {
+                        scale: 2,
+                        windowWidth: 1024,
+                        useCORS: true,
+                        logging: false
+                    });
+
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgProps = pdf.getImageProperties(imgData);
+                    const imgHeight = (imgProps.height * contentWidth) / imgProps.width;
+                    
+                    if (y > 0 && y + imgHeight > contentHeight) {
+                        pdf.addPage();
+                        y = 0;
+                    }
+                    
+                    pdf.addImage(imgData, 'PNG', pageMargin, y + pageMargin + pageHeaderHeight, contentWidth, imgHeight);
+                    y += imgHeight;
+                }
+
+                const pageCount = pdf.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    pdf.setPage(i);
+                    pdf.setFontSize(8);
+                    pdf.setTextColor(100);
+                    pdf.text('Documentação Frizon & RD Station', pageMargin, pageMargin);
+                    pdf.text(`Página ${i} de ${pageCount}`, pdf.internal.pageSize.getWidth() / 2, pdf.internal.pageSize.getHeight() - (pageMargin/2), { align: 'center' });
+                }
+
+                pdf.save('documentacao_frizon_rd.pdf');
+                
+                document.body.classList.remove('pdf-prepare');
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }
+            
+            document.querySelectorAll('#download-pdf').forEach(button => {
+                button.addEventListener('click', (e) => generatePDF(e.currentTarget));
+            });
+            
+            setActiveSection(window.location.hash || '#overview');
         });
 
-        // Copy to clipboard utility
         function copyToClipboard(elementId) {
             const input = document.getElementById(elementId);
             input.select();
-            input.setSelectionRange(0, 99999); // For mobile devices
-            
+            input.setSelectionRange(0, 99999);
             try {
                 document.execCommand('copy');
                 const feedback = document.getElementById('copy-feedback');
                 feedback.textContent = 'Copiado para a área de transferência!';
-                setTimeout(() => {
-                    feedback.textContent = '';
-                }, 2000);
-            } catch (err) {
-                console.error('Falha ao copiar: ', err);
-            }
-
+                setTimeout(() => { feedback.textContent = ''; }, 2000);
+            } catch (err) { console.error('Falha ao copiar: ', err); }
             window.getSelection().removeAllRanges();
         }
-
     </script>
 </body>
 </html>
